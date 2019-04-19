@@ -84,7 +84,8 @@ class Command(object):
             self.type = "C"
 
 
-
+    def __repr__(self):
+        return self.raw_command
 
 
     def asm_text(self):
