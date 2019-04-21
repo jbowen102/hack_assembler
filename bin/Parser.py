@@ -5,7 +5,8 @@ decoded by Code module.
 
 def try_num(string_in):
     try:
-        return int(string_in)
+        int(string_in)
+        return True
     except ValueError:
         return False
 
@@ -24,7 +25,7 @@ class SymbolTable(object):
     def symbol_val(self, key):
         return self.symbol_map[key]
 
-    def key_list(self):
+    def symbol_list(self):
         return self.symbol_map.keys()
 
     def val_list(self):
@@ -42,12 +43,15 @@ class RAMTable(SymbolTable):
                         "R3": 3, "R4": 4, "R5": 5, "R6": 6, "R7": 7, "R8": 8,
                         "R9": 9, "R10": 10, "R11": 11, "R12": 12, "R13": 13,
                         "R14": 14, "R15": 15, "SCREEN": 16384, "KDB": 24576}
-        self.max_lower_val = 15
+        self.next_avail_val = 16
 
-    def add_entry(self, sym):
+    def add_entry(self, symbol):
         # differs from parent class in auto-assignment of value
-        self.symbol_map[sym] = self.max_lower_val + 1
-        self.max_lower_val += 1
+        if self.next_avail_val >= 16384:
+            raise ValueError("Max RAM allotment reached. Cannot continue.")
+        else:
+            self.symbol_map[symbol] = self.next_avail_val
+            self.next_avail_val += 1
 
 
 class CommandSet(object):
@@ -78,10 +82,10 @@ class Command(object):
             # linking it to the next available mem slot.
 
             if try_num(raw_A):
-                self.A_value = try_num(raw_A)
-            elif raw_A in self.jump_map.key_list():
+                self.A_value = int(raw_A)
+            elif raw_A in self.jump_map.symbol_list():
                 self.A_value = self.jump_map.symbol_val(raw_A)
-            elif raw_A in self.variable_map.key_list():
+            elif raw_A in self.variable_map.symbol_list():
                 self.A_value = self.variable_map.symbol_val(raw_A)
             else:
                 self.variable_map.add_entry(raw_A)
@@ -130,14 +134,13 @@ class Parser(object):
 
         # initiate mapping of symbols to their mem locations
         # variable mappings will be added to this list as they're encountered.
-        self.jump_map = SymbolTable()
+        self.jumps = SymbolTable()
         self.variables = RAMTable()
 
         # loop through and index jump labels into dictionary.
 
-        self.stripped_file = []
-
         with open(input_file, 'r') as raw_file:
+            self.stripped_file = []
             line_num = 0
 
             for line in raw_file:
@@ -152,21 +155,33 @@ class Parser(object):
                     # read in all characters until close parenthesis.
                     # don't increment counter or transcribe to new list.
                     symbol = stripped_line[1:].split(")")[0]
-                    self.jump_map.add_entry(symbol, line_num)
+                    self.jumps.add_entry(symbol, line_num)
                 else:
-                    print("\t%d - %s" % (line_num, stripped_line))
                     line_num += 1
                     self.stripped_file.append(stripped_line)
 
         self.commands = CommandSet()
         line = 0
         for command_line in self.stripped_file:
-            current_command = Command(command_line, self.jump_map)
+            current_command = Command(command_line, self.jumps, self.variables)
             self.commands.add_command(line, current_command)
+#             if current_command.command_type() == "A":
+#                 print("\t%d - %s (%d)" % (line, current_command.asm_text(),
+#                                                 current_command.value()))
+# #                print("\t%d - %s (%d)" (line, command_line, current_command.value()))
+#             else:
+#                 print("\t%d - %s " % (line, current_command.asm_text()), end="")
+#                 print(current_command.value())
             line += 1
 
     def jump_map(self):
-        return self.jump_map
+        return self.jumps
+
+    def variable_map(self):
+        return self.variables
+
+    def parsed_commands(self):
+        return self.commands
 
     def write_parsed_file(self):
         # write .hack file by transcribing from self.commands
