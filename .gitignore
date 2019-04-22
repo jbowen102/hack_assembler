@@ -1,2 +1,4 @@
 *.pyc
 .~*
+hack_code_output/
+_gsdata_/

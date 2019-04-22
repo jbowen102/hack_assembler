@@ -4,6 +4,8 @@ decoded by Code module.
 """
 
 def try_num(string_in):
+    """Function to try converting a string into an integer. If successful,
+    returns True. Otherwise, False."""
     try:
         int(string_in)
         return True
@@ -62,6 +64,16 @@ class CommandSet(object):
     def add_command(self, line, comm):
         self.command_dict[line] = comm
 
+    def get_command(self, line):
+        return self.command_dict[line]
+
+    def line_list(self):
+        lines = []
+        for key in self.command_dict.keys():
+            lines.append(key)
+        lines.sort()
+        return lines
+
 
 class Command(object):
     """Class representing a single parsed command from .asm file."""
@@ -97,10 +109,10 @@ class Command(object):
             if "=" in self.raw_command:
                 self.comp = self.raw_command.split("=")[1]
                 self.dest = self.raw_command.split("=")[0]
-                self.jump = 0;
+                self.jump = "0";
             elif ";" in self.raw_command:
                 self.comp = self.raw_command.split(";")[0]
-                self.dest = 0;
+                self.dest = "0";
                 self.jump = self.raw_command.split(";")[1]
             else:
                 raise ValueError("C-command identified with invalid value:\n\t%s"
@@ -182,7 +194,3 @@ class Parser(object):
 
     def parsed_commands(self):
         return self.commands
-
-    def write_parsed_file(self):
-        # write .hack file by transcribing from self.commands
-        pass
